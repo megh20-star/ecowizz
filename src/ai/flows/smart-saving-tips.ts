@@ -45,6 +45,9 @@ const smartSavingTipsPrompt = ai.definePrompt({
 
   The tips should be specific, easy to understand, and directly related to reducing energy and water consumption.
   Do not provide tips that involve purchasing new devices, or expensive renovations.
+
+  Format your response as a JSON object that adheres to the following schema:
+  ${JSON.stringify(SmartSavingTipsOutputSchema.jsonSchema)}
 `,
 });
 
