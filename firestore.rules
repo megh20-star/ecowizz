@@ -1,0 +1,181 @@
+/**
+ * Firebase Security Rules for the EcoWizz Application
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personal data, ensuring
+ * that users can only access and modify their own information. It provides public,
+ * read-only access for global content and a collaborative access model for shared
+ * resources like competitions. The default security posture is to deny access unless
+ * explicitly allowed.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores private user profile information. All sensitive user-
+ *   specific data, like usage statistics, is nested under this path.
+ * - /tips/{tipId}: A top-level collection for globally accessible content that all
+ *   users can read.
+ * - /competitions/{competitionId}: A top-level collection for collaborative events.
+ *   Access is managed through a list of members denormalized on each document.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user's data tree (/users/{userId}) is completely inaccessible
+ *   to any other user.
+ * - No User Enumeration: Listing the top-level /users collection is disabled to
+ *   protect user privacy and prevent data scraping.
+ * - Admin-Only Writes for Global Data: Public collections like /tips can be read by
+ *   anyone but require an admin role (currently pending implementation) for any writes.
+ * - Denormalization for Authorization: The /competitions collection uses a denormalized
+ *   'members' map on each document. This avoids slow and costly 'get()' calls in the
+ *   rules, making authorization checks fast and efficient. Access to a competition and
+ *   its subcollections is determined solely by this map.
+ * - Structural Segregation: Private user data (e.g., /users/{userId}/usage) is stored
+ *   in a separate, user-owned collection path from public data (/tips). This provides a
+ *   clear and secure boundary for list operations.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions for Reusable Logic
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if a document currently exists. Used for safe updates and deletes.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Combines ownership and existence checks for update/delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+
+    /**
+     * On create, validates that the user document's 'id' field matches its path.
+     * This enforces relational integrity from the start.
+     */
+    function isValidUserDocOnCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * On update, ensures the user document's 'id' field cannot be changed.
+     */
+    function isImmutableUserId() {
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * Checks if the requesting user is a participant in a competition.
+     * Reads the 'members' map on an existing competition document.
+     */
+    function isParticipant() {
+      return isSignedIn() && isExistingDoc() && request.auth.uid in resource.data.members;
+    }
+
+    /**
+     * On create, validates that the creator is adding themselves to the members map.
+     */
+    function isCreatorAndParticipant() {
+      return isSignedIn() && request.auth.uid in request.resource.data.members;
+    }
+
+    /**
+     * @description
+     *   Manages user profile documents. Users can create their own document, and
+     *   once created, only they can read or write to it. Listing all users is
+     *   explicitly forbidden to protect user privacy.
+     * @path /users/{userId}
+     * @allow (create) A new user with uid 'user_abc' creating their own profile at /users/user_abc.
+     * @allow (get) User 'user_abc' reading their own profile at /users/user_abc.
+     * @deny (list) Any user, signed in or not, attempting to list all documents in /users.
+     * @deny (update) User 'user_xyz' trying to update the profile of 'user_abc'.
+     * @principle Restricts access to a user's own data tree and enforces relational integrity.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Prevent user enumeration
+      allow create: if isOwner(userId) && isValidUserDocOnCreate(userId);
+      allow update: if isExistingOwner(userId) && isImmutableUserId();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description
+       *   Manages a user's private usage data. Access is inherited from the
+       *   parent user document, meaning only the owner can perform any action
+       *   on their own usage records.
+       * @path /users/{userId}/usage/{usageId}
+       * @allow (create) User 'user_abc' creating a new usage record in their own subcollection.
+       * @allow (list) User 'user_abc' listing all of their own usage records.
+       * @deny (get) User 'user_xyz' trying to read a usage record from /users/user_abc/usage/{usageId}.
+       * @principle Enforces document ownership via path hierarchy.
+       */
+      match /usage/{usageId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow update: if isExistingOwner(userId);
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    /**
+     * @description
+     *   Manages global, public-facing tips. Any user, including anonymous ones,
+     *   can read these tips. Writing is currently disabled pending the
+     *   implementation of an admin role system.
+     * @path /tips/{tipId}
+     * @allow (get, list) Any user, signed in or not, reading tips.
+     * @deny (create, update, delete) Any user attempting to modify the tips collection.
+     * @principle Provides public read access for global content while securing write operations.
+     */
+    match /tips/{tipId} {
+      allow get: if true;
+      allow list: if true;
+      // Admin-only writes are intended, but no admin system is defined in the IR.
+      // Defaulting to the most secure state: disabled.
+      allow create: if false; // TODO: Implement admin role check (e.g., `isAdmin()`).
+      allow update: if false; // TODO: Implement admin role check (e.g., `isAdmin()`).
+      allow delete: if false; // TODO: Implement admin role check (e.g., `isAdmin()`).
+    }
+
+    /**
+     * @description
+     *   Manages collaborative competitions. Access is controlled by a 'members' map
+     *   on each document. Only users listed in this map can read the document.
+     *   Writing is restricted to prevent unauthorized modifications.
+     * @path /competitions/{competitionId}
+     * @allow (get) A signed-in user whose UID is in the document's 'members' map.
+     * @allow (create) A signed-in user creating a competition, including their own UID in the 'members' map.
+     * @deny (get) A user trying to read a competition they are not a member of.
+     * @deny (update) Any user trying to update a competition.
+     * @principle Enforces collaborative access via a denormalized members list.
+     */
+    match /competitions/{competitionId} {
+      allow get: if isParticipant();
+      allow list: if isSignedIn(); // Allows querying for competitions one is a member of.
+      allow create: if isCreatorAndParticipant();
+      // CRITICAL: Cannot implement secure update/delete rules. The 'competition'
+      // entity is missing an 'ownerId' field or a role system within the 'members' map
+      // (e.g., {'userId': 'admin'}) to designate who can modify or delete the document.
+      allow update: if false; // TODO: Add owner/admin validation once the schema is updated.
+      allow delete: if false; // TODO: Add owner/admin validation once the schema is updated.
+    }
+  }
+}

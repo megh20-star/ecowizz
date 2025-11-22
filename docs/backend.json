@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the EcoWizz application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "User's username for login."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's last name."
+        },
+        "profilePicture": {
+          "type": "string",
+          "description": "URL to the user's profile picture.",
+          "format": "uri"
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "The date and time when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "firstName",
+        "lastName"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Path-based ownership for simplified security rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/usage/{usageId}",
+        "definition": {
+          "entityName": "usage",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores energy and water usage data for each user. Ownership is determined by the path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            },
+            {
+              "name": "usageId",
+              "description": "Unique identifier for the usage record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tips/{tipId}",
+        "definition": {
+          "entityName": "tip",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores global saving tips. Open access for read operations. Admin access required for create, update, and delete operations.",
+          "params": [
+            {
+              "name": "tipId",
+              "description": "Unique identifier for the saving tip."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/competitions/{competitionId}",
+        "definition": {
+          "entityName": "competition",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores competition data, including details and participants. Includes denormalized 'members' map for authorization independence and usage data of participants.",
+          "params": [
+            {
+              "name": "competitionId",
+              "description": "Unique identifier for the competition."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the EcoHabit Tracker application, focusing on user data, usage tracking, saving tips, and competition mode. The design emphasizes authorization independence and secure list operations, adhering to the specified core design principles and strategies. The structure facilitates the creation of simple, robust, and easily debuggable security rules.\n\n1.  **/users/{userId}**: Stores user profile information. This top-level collection ensures path-based ownership, simplifying security rules. Each user's data is isolated and directly accessible, avoiding the need for complex authorization logic.\n\n2.  **/users/{userId}/usage/{usageId}**: Stores energy and water usage data for each user. By nesting this data under the user's document, we maintain clear ownership and avoid the need for cross-collection queries. The security rules can easily enforce that only the user can read or write their own usage data. Denormalization is not required at this level, as ownership is implicit in the path.\n\n3.  **/tips/{tipId}**: Stores global saving tips. Since these are global, no specific authorization is associated with them, besides possible admin access for creation or update.\n\n4.  **/competitions/{competitionId}**: Stores competition data, including details and participants.  The `members` map is used to manage participant roles. The participants usage data is stored denormalized within the competition document. This redundancy enables fast calculations of the leaderboards without complicated queries and atomic security rules\n\n**Authorization Independence:** The structure ensures authorization independence by avoiding `get()` calls in security rules. Ownership is primarily determined by the document path. For collaborative scenarios like competitions, the `members` map is denormalized, removing the need to fetch parent document data.\n\n**QAPs (Rules are not Filters):** Secure `list` operations are supported by Structural Segregation. Each collection has a homogeneous security posture. List operations on `/users/{userId}/usage` are secure because only the user can access their own data.  List operations on `/competitions` can be secured with membership checks or role-based access control.\n\n**Denormalization Strategy:** The structure incorporates denormalization to avoid hierarchical authorization dependencies, focusing primarily on collaborative contexts (competitions). This eliminates the need for `get()` calls in security rules, enabling atomic operations and simplifying security logic. Specifically, usage data for the members of a competition is denormalized inside of the document, to allow fast calculations and access."
+  }
+}
