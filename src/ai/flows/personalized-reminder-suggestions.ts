@@ -46,7 +46,8 @@ const prompt = ai.definePrompt({
   Usage Data: {{{usageData}}}
   Appliance Type: {{{applianceType}}}
 
-  Generate the output in the format requested.`,
+  Generate the output as a JSON object that adheres to the following schema:
+  ${JSON.stringify(ReminderSuggestionsOutputSchema.jsonSchema)}`,
 });
 
 const personalizedReminderSuggestionsFlow = ai.defineFlow(
