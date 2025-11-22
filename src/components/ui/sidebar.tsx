@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -158,19 +159,15 @@ SidebarMenuItem.displayName = "SidebarMenuItem"
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button> & { isActive?: boolean; asChild?: boolean }
->(({ isActive, asChild = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : "button";
+>(({ isActive, asChild, ...props }, ref) => {
+  const Comp = asChild ? Slot : "button"
   return (
     <Button
       variant={isActive ? "secondary" : "ghost"}
       className="h-10 w-full justify-start"
-      asChild
+      ref={ref}
       {...props}
-    >
-      <Comp ref={ref}>
-        {props.children}
-      </Comp>
-    </Button>
+    />
   )
 })
 SidebarMenuButton.displayName = "SidebarMenuButton"
