@@ -73,10 +73,6 @@ export function AppSidebar() {
               <Link href={item.href} passHref asChild>
                 <SidebarMenuButton
                   isActive={pathname === item.href}
-                  className={cn(
-                    "w-full justify-start",
-                    pathname === item.href && "bg-accent text-accent-foreground"
-                  )}
                 >
                   <item.icon className="mr-2 h-5 w-5" />
                   {!collapsed && item.label}

@@ -8,10 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 
 import {
   Sheet,
-  SheetClose,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "./sheet"
 import { Button } from "./button"
@@ -81,8 +78,6 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
   ({ className, variant, collapsed, ...props }, ref) => {
     const {
       collapsed: isCollapsed,
-      collapsible,
-      setCollapsed,
     } = useSidebar()
     const isMobile = useIsMobile()
 
@@ -101,7 +96,7 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
           <SheetContent side="left" className="p-0 w-64">
             <div
               ref={ref}
-              className={cn(sidebarVariants({ variant, collapsed }), className)}
+              className={cn(sidebarVariants({ variant, collapsed: false }), className)}
               {...props}
             />
           </SheetContent>
@@ -163,21 +158,23 @@ SidebarMenuItem.displayName = "SidebarMenuItem"
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button> & { isActive?: boolean; asChild?: boolean }
->(({ className, children, isActive, asChild = false, ...props }, ref) => {
+>(({ isActive, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button";
   return (
     <Button
-      ref={ref}
       variant={isActive ? "secondary" : "ghost"}
-      className={cn("h-10 w-full justify-start", className)}
-      asChild={asChild}
+      className="h-10 w-full justify-start"
+      asChild
       {...props}
     >
-      {children}
+      <Comp ref={ref}>
+        {props.children}
+      </Comp>
     </Button>
   )
 })
 SidebarMenuButton.displayName = "SidebarMenuButton"
+
 
 const SidebarFooter = React.forwardRef<
   HTMLDivElement,
