@@ -162,10 +162,9 @@ SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<typeof Button> & { isActive?: boolean, asChild?: boolean }
+  React.ComponentProps<typeof Button> & { isActive?: boolean }
 >(({ className, children, isActive, asChild, ...props }, ref) => {
   const { collapsed } = useSidebar()
-  const Comp = asChild ? Slot : 'button';
 
   return (
     <Button
