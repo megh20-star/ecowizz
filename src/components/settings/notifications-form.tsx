@@ -14,8 +14,8 @@ import {
   FormLabel,
 } from "@/components/ui/form"
 import { Switch } from "@/components/ui/switch"
-import { toast } from "@/hooks/use-toast"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
+import { useToast } from "@/hooks/use-toast"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const notificationsFormSchema = z.object({
   smartReminders: z.boolean().default(true),
@@ -104,7 +104,7 @@ export default function NotificationsForm() {
                         <FormLabel className="text-base">Competition Updates</FormLabel>
                         <FormDescription>
                             Stay updated on your rank and ongoing competitions.
-                        </Description>
+                        </FormDescription>
                         </div>
                         <FormControl>
                         <Switch
