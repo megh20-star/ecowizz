@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -16,6 +17,7 @@ import {
 import { Button } from "./button"
 import { Menu } from "lucide-react"
 import { ScrollArea } from "./scroll-area"
+import { Slot } from "@radix-ui/react-slot"
 
 const sidebarVariants = cva(
   "flex h-full flex-col bg-sidebar text-sidebar-foreground",
@@ -160,22 +162,20 @@ SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
-  React.ComponentProps<typeof Button> & { isActive?: boolean }
->(({ className, children, isActive, ...props }, ref) => {
+  React.ComponentProps<typeof Button> & { isActive?: boolean, asChild?: boolean }
+>(({ className, children, isActive, asChild, ...props }, ref) => {
   const { collapsed } = useSidebar()
+  const Comp = asChild ? Slot : 'button';
 
   return (
     <Button
       ref={ref}
       variant={isActive ? "secondary" : "ghost"}
       className={cn("h-10 w-full justify-start", className)}
+      asChild={asChild}
       {...props}
     >
-      {collapsed ? (
-        <div className="w-full text-center">{children}</div>
-      ) : (
-        children
-      )}
+        {children}
     </Button>
   )
 })
