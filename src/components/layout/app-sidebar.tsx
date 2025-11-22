@@ -61,7 +61,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2">
           <Leaf className="h-8 w-8 text-primary" />
-          {!collapsed && <h1 className="text-xl font-bold text-primary">EcoHabit</h1>}
+          {!collapsed && <h1 className="text-xl font-bold text-primary">Eco Wizz</h1>}
         </div>
       </SidebarHeader>
       <SidebarContent>

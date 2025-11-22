@@ -5,6 +5,8 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { FirebaseClientProvider } from '@/firebase';
+import AuthProvider from '@/components/auth/auth-provider';
 
 const ptSans = PT_Sans({
   subsets: ['latin'],
@@ -13,7 +15,7 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'EcoHabit Tracker',
+  title: 'Eco Wizz',
   description: 'Track and reduce your energy and water consumption.',
 };
 
@@ -25,14 +27,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn('font-sans antialiased', ptSans.variable)}>
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <main className="flex-1 flex flex-col">
-              {children}
-            </main>
-          </div>
-        </SidebarProvider>
+        <FirebaseClientProvider>
+          <SidebarProvider>
+            <AuthProvider>
+              <div className="flex min-h-screen w-full">
+                <AppSidebar />
+                <main className="flex-1 flex flex-col">
+                  {children}
+                </main>
+              </div>
+            </AuthProvider>
+          </SidebarProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>

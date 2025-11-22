@@ -50,7 +50,7 @@ export default function NotificationsForm() {
     <Card>
         <CardHeader>
             <CardTitle>Notifications</CardTitle>
-            <CardDescription>Manage how you receive notifications from EcoHabit.</CardDescription>
+            <CardDescription>Manage how you receive notifications from Eco Wizz.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -104,7 +104,7 @@ export default function NotificationsForm() {
                         <FormLabel className="text-base">Competition Updates</FormLabel>
                         <FormDescription>
                             Stay updated on your rank and ongoing competitions.
-                        </FormDescription>
+                        </Description>
                         </div>
                         <FormControl>
                         <Switch
