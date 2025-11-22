@@ -23,6 +23,8 @@ import {
   initiateEmailSignUp,
 } from '@/firebase/non-blocking-login';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { FirebaseError } from 'firebase/app';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -38,6 +40,7 @@ interface AuthFormProps {
 export default function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(formSchema),
@@ -47,18 +50,47 @@ export default function AuthForm({ mode }: AuthFormProps) {
     },
   });
 
+  const handleError = (error: FirebaseError) => {
+    setIsLoading(false);
+    let title = 'An error occurred';
+    let description = error.message;
+
+    switch (error.code) {
+      case 'auth/invalid-credential':
+        title = 'Login Failed';
+        description = 'The email or password you entered is incorrect. Please try again.';
+        break;
+      case 'auth/email-already-in-use':
+        title = 'Sign-up Failed';
+        description = 'This email is already registered. Please try logging in instead.';
+        break;
+      case 'auth/weak-password':
+        title = 'Sign-up Failed';
+        description = 'The password is too weak. Please use at least 6 characters.';
+        break;
+      default:
+        console.error('Firebase Auth Error:', error);
+    }
+    
+    toast({
+      variant: 'destructive',
+      title: title,
+      description: description,
+    });
+  };
+
   const onSubmit = (values: AuthFormValues) => {
     setIsLoading(true);
     if (mode === 'login') {
-      initiateEmailSignIn(auth, values.email, values.password);
+      initiateEmailSignIn(auth, values.email, values.password).catch(handleError);
     } else {
-      initiateEmailSignUp(auth, values.email, values.password);
+      initiateEmailSignUp(auth, values.email, values.password).catch(handleError);
     }
   };
   
   const handleAnonymousSignIn = () => {
     setIsLoading(true);
-    initiateAnonymousSignIn(auth);
+    initiateAnonymousSignIn(auth).catch(handleError);
   };
 
   return (
